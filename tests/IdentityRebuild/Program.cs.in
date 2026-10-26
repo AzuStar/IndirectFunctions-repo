@@ -1,0 +1,82 @@
+using System.Globalization;
+using System.Reflection;
+using System.Text.Json;
+using IndirectFunctions;
+
+internal static class Program
+{
+    private static void Main(string[] args)
+    {
+        if (args.Length != 2 || args[0] is not ("save" or "restore"))
+            throw new ArgumentException("Expected save|restore and persistence directory.");
+        Directory.CreateDirectory(args[1]);
+        using var context = new NContext();
+        if (args[0] == "save")
+        {
+            var alpha = IdentityCallbacks.Alpha(context, 7);
+            var beta = IdentityCallbacks.Beta(context);
+            Check(alpha.Invoke(context, 11) == 18 && beta.Invoke(context, 11) == 33, "Original callback behavior failed.");
+            File.WriteAllBytes(Path.Combine(args[1], "alpha.code"), alpha.ToBytes());
+            File.WriteAllBytes(Path.Combine(args[1], "beta.code"), beta.ToBytes());
+            File.WriteAllLines(Path.Combine(args[1], "slots.txt"), [Slot(alpha).ToString(CultureInfo.InvariantCulture), Slot(beta).ToString(CultureInfo.InvariantCulture)]);
+            var graph = context.ExportCaptures([alpha.CaptureRef], new IntegerCodec());
+            var saved = new SavedGraph(graph.Nodes.Select(node => new SavedNode(node.NodeId, node.SchemaId.ToBytes(),
+                node.Fields.Select(field => new SavedField(field.Name, field.Value.Kind,
+                    field.Value.Kind == NCaptureValueKind.Leaf ? (JsonElement?)field.Value.Leaf : null, field.Value.NodeId)).ToArray())).ToArray(),
+                graph.Roots.ToArray(), graph.RootIds?.ToArray());
+            File.WriteAllText(Path.Combine(args[1], "capture.json"), JsonSerializer.Serialize(saved));
+            Console.WriteLine($"First build persisted callback IDs and captures; alpha slot={Slot(alpha)}, beta slot={Slot(beta)}.");
+            return;
+        }
+
+        // No creation factory is called before either code identity is resolved in this fresh process.
+        var alphaBytes = File.ReadAllBytes(Path.Combine(args[1], "alpha.code"));
+        var betaBytes = File.ReadAllBytes(Path.Combine(args[1], "beta.code"));
+        Check(alphaBytes.Length == 16 && betaBytes.Length == 16, "Persistent identities are not canonical 16-byte values.");
+        var decodedAlpha = NFunc<int, int>.FromBytes(alphaBytes);
+        var decodedBeta = NFunc<int, int>.FromBytes(betaBytes);
+        Check(decodedAlpha.CodeId == NCodeId.FromKey("identity-rebuild.alpha") && decodedBeta.CodeId == NCodeId.FromKey("identity-rebuild.beta"), "Stable keys resolved different identities.");
+        Check(decodedAlpha.ToBytes().SequenceEqual(alphaBytes) && decodedBeta.ToBytes().SequenceEqual(betaBytes), "Code bytes changed after rebuild.");
+        var oldSlots = File.ReadAllLines(Path.Combine(args[1], "slots.txt")).Select(line => int.Parse(line, CultureInfo.InvariantCulture)).ToArray();
+        Check(oldSlots.Length == 2 && oldSlots[0] != oldSlots[1], "First build did not register distinct slots.");
+        Check(Slot(decodedAlpha) == oldSlots[1] && Slot(decodedBeta) == oldSlots[0], "Runtime table slots did not actually reorder.");
+        Check(!decodedAlpha.IsBound, "Captured code identity decoded with an implicit binding.");
+        bool unboundRejected = false;
+        try { decodedAlpha.Invoke(context, 11); }
+        catch (InvalidOperationException) { unboundRejected = true; }
+        Check(unboundRejected, "Unbound captured identity executed.");
+        var wire = JsonSerializer.Deserialize<SavedGraph>(File.ReadAllText(Path.Combine(args[1], "capture.json")))!;
+        var restoredGraph = new NCaptureGraph(wire.Nodes.Select(node => new NCaptureNode(node.NodeId, NCodeId.FromBytes(node.SchemaId),
+            node.Fields.Select(field => new NCaptureField(field.Name, field.Kind == NCaptureValueKind.Leaf
+                ? NCaptureValue.FromLeaf(field.Leaf) : NCaptureValue.FromReference(field.NodeId))).ToArray())).ToArray(), wire.Roots) { RootIds = wire.RootIds };
+        var capture = context.ImportCaptures(restoredGraph, new IntegerCodec())[0];
+        var restoredAlpha = decodedAlpha.Bind(context, capture);
+        Check(restoredAlpha.Invoke(context, 11) == 18 && decodedBeta.Invoke(context, 11) == 33, "Restored identities dispatched different callbacks.");
+        Check(IdentityCallbacks.Alpha(context, 7).CodeId == decodedAlpha.CodeId && IdentityCallbacks.Beta(context).CodeId == decodedBeta.CodeId, "Renamed source creation changed stable identity.");
+        Console.WriteLine($"Durable identity passed: renamed source, reordered slots, fresh-process decode before creation, JSON capture restore; alpha slot={Slot(decodedAlpha)}, beta slot={Slot(decodedBeta)}.");
+    }
+
+    private static void Check(bool condition, string message)
+    {
+        if (!condition) throw new InvalidOperationException(message);
+    }
+
+    // Cold test introspection proves table order changed; runtime invocation never uses reflection.
+    private static int Slot(NFunc<int, int> callback)
+    {
+        var handle = typeof(NFunc<int, int>).GetField("_handle", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(callback)!;
+        return (int)handle.GetType().GetField("Slot", BindingFlags.Instance | BindingFlags.Public)!.GetValue(handle)!;
+    }
+
+    private sealed class IntegerCodec : INCaptureLeafCodec
+    {
+        public object? Encode<T>(T value) => typeof(T) == typeof(int)
+            ? JsonSerializer.SerializeToElement((int)(object)value!) : throw new InvalidOperationException("Unexpected capture leaf type.");
+        public T Decode<T>(object? encoded) => typeof(T) == typeof(int)
+            ? (T)(object)((JsonElement)encoded!).GetInt32() : throw new InvalidOperationException("Unexpected capture leaf type.");
+    }
+
+    public sealed record SavedGraph(SavedNode[] Nodes, int[] Roots, int[]? RootIds);
+    public sealed record SavedNode(int NodeId, byte[] SchemaId, SavedField[] Fields);
+    public sealed record SavedField(string Name, NCaptureValueKind Kind, JsonElement? Leaf, int NodeId);
+}

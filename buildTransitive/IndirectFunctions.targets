@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <IndirectFunctionsEnabled Condition="'$(IndirectFunctionsEnabled)' == ''">true</IndirectFunctionsEnabled>
+    <AllowUnsafeBlocks Condition="'$(IndirectFunctionsEnabled)' == 'true'">true</AllowUnsafeBlocks>
+    <IndirectFunctionsTransformPath Condition="'$(IndirectFunctionsTransformPath)' == ''">$(MSBuildThisFileDirectory)../tools/net10.0/IndirectFunctions.Build.dll</IndirectFunctionsTransformPath>
+  </PropertyGroup>
+  <Target Name="IndirectFunctionsTransform" BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences"
+          Condition="'$(IndirectFunctionsEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_IndirectOutput>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)indirect-functions', '$(MSBuildProjectDirectory)'))</_IndirectOutput>
+      <_IndirectSources>$(_IndirectOutput)/sources.txt</_IndirectSources>
+      <_IndirectReferences>$(_IndirectOutput)/references.txt</_IndirectReferences>
+      <_IndirectAnalyzers>$(_IndirectOutput)/analyzers.txt</_IndirectAnalyzers>
+      <_IndirectAnalyzerConfig>$(_IndirectOutput)/analyzerconfig.txt</_IndirectAnalyzerConfig>
+      <_IndirectAdditionalFiles>$(_IndirectOutput)/additionalfiles.txt</_IndirectAdditionalFiles>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(IndirectFunctionsTransformPath)')"
+           Text="IndirectFunctions transform tool missing: $(IndirectFunctionsTransformPath). Build tooling projects or reinstall package." />
+    <MakeDir Directories="$(_IndirectOutput)" />
+    <WriteLinesToFile File="$(_IndirectSources)" Lines="@(Compile->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(_IndirectReferences)" Lines="@(ReferencePath->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(_IndirectAnalyzers)" Lines="@(Analyzer->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(_IndirectAnalyzerConfig)" Lines="@(EditorConfigFiles->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(_IndirectAdditionalFiles)" Lines="@(AdditionalFiles->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Exec Command="dotnet &quot;$(IndirectFunctionsTransformPath)&quot; --sources &quot;$(_IndirectSources)&quot; --references &quot;$(_IndirectReferences)&quot; --output &quot;$(_IndirectOutput)&quot; --assembly &quot;$(AssemblyName)&quot; --defines &quot;$(DefineConstants)&quot; --langversion &quot;$(LangVersion)&quot; --nullable &quot;$(Nullable)&quot; --checked &quot;$(CheckForOverflowUnderflow)&quot; --outputkind &quot;$(OutputType)&quot; --analyzers &quot;$(_IndirectAnalyzers)&quot; --analyzerconfig &quot;$(_IndirectAnalyzerConfig)&quot; --additionalfiles &quot;$(_IndirectAdditionalFiles)&quot;" />
+    <ReadLinesFromFile File="$(_IndirectOutput)/rewritten-sources.txt">
+      <Output TaskParameter="Lines" ItemName="_IndirectCompile" />
+    </ReadLinesFromFile>
+    <ReadLinesFromFile File="$(_IndirectOutput)/retained-analyzers.txt">
+      <Output TaskParameter="Lines" ItemName="_IndirectAnalyzer" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <Compile Remove="@(Compile)" />
+      <Compile Include="@(_IndirectCompile)" />
+      <Analyzer Remove="@(Analyzer)" />
+      <Analyzer Include="@(_IndirectAnalyzer)" />
+      <FileWrites Include="$(_IndirectOutput)/**/*" />
+    </ItemGroup>
+  </Target>
+</Project>

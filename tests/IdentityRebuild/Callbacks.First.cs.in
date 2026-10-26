@@ -1,0 +1,12 @@
+using IndirectFunctions;
+
+internal static class IdentityCallbacks
+{
+    public static NFunc<int, int> Alpha(NContext context, int bias)
+        => NFunc<int, int>.Create(context, "identity-rebuild.alpha", value => value + bias);
+
+    public static NFunc<int, int> Beta(NContext context)
+        => NFunc<int, int>.Create(context, "identity-rebuild.beta", Multiply);
+
+    private static int Multiply(int value) => value * 3;
+}

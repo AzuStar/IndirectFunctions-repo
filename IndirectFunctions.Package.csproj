@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageId>IndirectFunctions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>IndirectFunctions contributors</Authors>
+    <Description>Stable serializable code identities, ahead-of-time indirect callbacks, and shared capture lowering for .NET.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="IndirectFunctions/IndirectFunctions.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="IndirectFunctions.Build/IndirectFunctions.Build.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" PrivateAssets="all" />
+    <ProjectReference Include="IndirectFunctions.Generators/IndirectFunctions.Generators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="PERFORMANCE.md" Pack="true" PackagePath="/" />
+    <None Include="buildTransitive/IndirectFunctions.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+  <Target Name="CollectIndirectFunctionsPackage" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <None Include="IndirectFunctions/bin/$(Configuration)/net8.0/IndirectFunctions.dll" Pack="true" PackagePath="lib/net8.0/" />
+      <None Include="IndirectFunctions.Generators/bin/$(Configuration)/netstandard2.0/IndirectFunctions.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />
+      <None Include="IndirectFunctions.Build/bin/$(Configuration)/net10.0/*" Pack="true" PackagePath="tools/net10.0/" />
+    </ItemGroup>
+  </Target>
+</Project>

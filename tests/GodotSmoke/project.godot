@@ -1,0 +1,10 @@
+config_version=5
+
+[application]
+config/name="IndirectFunctions smoke"
+
+[dotnet]
+project/assembly_name="GodotSmoke"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

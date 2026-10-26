@@ -1,0 +1,4 @@
+[*.cs]
+
+noxrat_namespace_root = IndirectFunctions
+noxrat_namespace_folder_traversal_depth = 2

@@ -1,0 +1,18 @@
+<Solution>
+  <Project Path="IndirectFunctions/IndirectFunctions.csproj" />
+  <Project Path="IndirectFunctions.Build/IndirectFunctions.Build.csproj" />
+  <Project Path="IndirectFunctions.Generators/IndirectFunctions.Generators.csproj" />
+  <Project Path="IndirectFunctions.Generators.Tests/IndirectFunctions.Generators.Tests.csproj" />
+  <Project Path="IndirectFunctions.Runtime.Tests/IndirectFunctions.Runtime.Tests.csproj" />
+  <Project Path="IndirectFunctions.Package.csproj" />
+  <Project Path="tests/Integration/Integration.csproj" />
+  <Project Path="tests/Serialization/Serialization.csproj" />
+  <Project Path="tests/TopLevel/TopLevel.csproj" />
+  <Project Path="tests/NativeAot/NativeAot.csproj" />
+  <Project Path="benchmarks/IndirectFunctions.Benchmarks.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/CallbackLibrary/CallbackLibrary.csproj" />
+    <Project Path="tests/PackageSmoke/PackageSmoke.csproj" />
+  </Folder>
+  <Project Path="benchmarks/Comparison/Comparison.csproj" />
+</Solution>

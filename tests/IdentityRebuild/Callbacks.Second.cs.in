@@ -1,0 +1,14 @@
+using IndirectFunctions;
+
+// File renamed, source positions changed, registration declarations reordered.
+// Stable keys and captured-field semantics remain identical across builds.
+internal static class IdentityCallbacks
+{
+    public static NFunc<int, int> Beta(NContext context)
+        => NFunc<int, int>.Create(context, "identity-rebuild.beta", Multiply);
+
+    private static int Multiply(int value) => value * 3;
+
+    public static NFunc<int, int> Alpha(NContext context, int bias)
+        => NFunc<int, int>.Create(context, "identity-rebuild.alpha", value => value + bias);
+}

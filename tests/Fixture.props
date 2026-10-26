@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <IndirectFunctionsTransformPath>$(MSBuildThisFileDirectory)../IndirectFunctions.Build/bin/$(Configuration)/net10.0/IndirectFunctions.Build.dll</IndirectFunctionsTransformPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IndirectFunctions/IndirectFunctions.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IndirectFunctions.Build/IndirectFunctions.Build.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" PrivateAssets="all" GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishAot;PublishTrimmed" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IndirectFunctions.Generators/IndirectFunctions.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)../buildTransitive/IndirectFunctions.targets" />
+</Project>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>IdentityRebuildConsumer</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IndirectFunctionsTransformPath>$(IndirectFunctionsRepoPath)/IndirectFunctions.Build/bin/Release/net10.0/IndirectFunctions.Build.dll</IndirectFunctionsTransformPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="IndirectFunctions" HintPath="$(IndirectFunctionsRepoPath)/IndirectFunctions/bin/Release/net8.0/IndirectFunctions.dll" Private="true" />
+    <Analyzer Include="$(IndirectFunctionsRepoPath)/IndirectFunctions.Generators/bin/Release/netstandard2.0/IndirectFunctions.Generators.dll" />
+  </ItemGroup>
+  <Import Project="$(IndirectFunctionsRepoPath)/buildTransitive/IndirectFunctions.targets" />
+</Project>
